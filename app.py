@@ -199,7 +199,7 @@ def frete():
     taxa_valor = round(taxa, 2)
 
    resposta = {
-    "data": [
+       "data": [
         {
             "id": "entrega-cantinho",
             "name": "Entrega Cantinho do Alemão",
