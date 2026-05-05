@@ -4,10 +4,7 @@ import os
 
 app = Flask(__name__)
 
-# 🔐 API KEY segura (vem do Render)
 API_KEY = os.getenv("API_KEY")
-print("API_KEY CARREGADA:", API_KEY)
-
 ORIGEM = "Av. Melvin Jones, 333, Ponta Grossa, PR, Brasil"
 
 
@@ -34,11 +31,13 @@ def calcular_taxa(km):
         return 29.90
     elif km <= 20:
         return 35.00
-    else:
-        return None
+    return None
 
 
 def calcular_distancia(destino):
+    if not API_KEY:
+        return None, "API_KEY não configurada no servidor."
+
     url = "https://routes.googleapis.com/directions/v2:computeRoutes"
 
     headers = {
@@ -73,7 +72,19 @@ def calcular_distancia(destino):
         return None, str(e)
 
 
-# 🌐 Tela web (teste manual)
+def montar_destino_por_campos(dados):
+    rua = str(dados.get("rua", "")).strip()
+    numero = str(dados.get("numero", "")).strip()
+    bairro = str(dados.get("bairro", "")).strip()
+    cidade = str(dados.get("cidade", "Ponta Grossa")).strip()
+    estado = str(dados.get("estado", "PR")).strip()
+
+    if not rua or not numero or not bairro:
+        return None
+
+    return f"{rua}, {numero}, {bairro}, {cidade}, {estado}, Brasil"
+
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     resultado = None
@@ -103,9 +114,9 @@ def index():
     return render_template("index.html", resultado=resultado, erro=erro)
 
 
-# 🔥 API DE FRETE (ESSA A YAMPI VAI USAR)
-@app.route("/frete", methods=["POST"])
-def frete():
+# API para teste manual
+@app.route("/frete-teste", methods=["POST"])
+def frete_teste():
     dados = request.get_json(silent=True)
 
     if not dados:
@@ -114,19 +125,13 @@ def frete():
             "error": "Nenhum JSON recebido."
         }), 400
 
-    rua = str(dados.get("rua", "")).strip()
-    numero = str(dados.get("numero", "")).strip()
-    bairro = str(dados.get("bairro", "")).strip()
-    cidade = str(dados.get("cidade", "Ponta Grossa")).strip()
-    estado = str(dados.get("estado", "PR")).strip()
+    destino = montar_destino_por_campos(dados)
 
-    if not rua or not numero or not bairro:
+    if not destino:
         return jsonify({
             "success": False,
             "error": "Informe rua, número e bairro."
         }), 400
-
-    destino = f"{rua}, {numero}, {bairro}, {cidade}, {estado}, Brasil"
 
     km, erro_google = calcular_distancia(destino)
 
@@ -142,7 +147,7 @@ def frete():
     if taxa is None:
         return jsonify({
             "success": False,
-            "error": "Entrega acima de 20km (consultar).",
+            "error": "Entrega acima de 20km.",
             "km": round(km, 2)
         }), 200
 
@@ -153,6 +158,52 @@ def frete():
         "km": round(km, 2),
         "taxa": round(taxa, 2)
     })
+
+
+# API que a Yampi vai chamar
+@app.route("/frete", methods=["POST"])
+def frete():
+    dados = request.get_json(silent=True)
+
+    print("DADOS RECEBIDOS DA YAMPI:", dados)
+
+    if not dados:
+        return jsonify({
+            "shipping_methods": []
+        }), 200
+
+    destino = montar_destino_por_campos(dados)
+
+    if not destino:
+        return jsonify({
+            "shipping_methods": []
+        }), 200
+
+    km, erro_google = calcular_distancia(destino)
+
+    if km is None:
+        print("ERRO GOOGLE/YAMPI:", erro_google)
+        return jsonify({
+            "shipping_methods": []
+        }), 200
+
+    taxa = calcular_taxa(km)
+
+    if taxa is None:
+        return jsonify({
+            "shipping_methods": []
+        }), 200
+
+    return jsonify({
+        "shipping_methods": [
+            {
+                "name": "Entrega Cantinho do Alemão",
+                "description": f"Entrega por motoboy - {round(km, 2)} km",
+                "price": round(taxa, 2),
+                "delivery_time": 60
+            }
+        ]
+    }), 200
 
 
 if __name__ == "__main__":
