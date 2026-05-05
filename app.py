@@ -36,7 +36,7 @@ def calcular_taxa(km):
 
 def calcular_distancia(destino):
     if not API_KEY:
-        return None, "API_KEY não configurada"
+        return None, "API_KEY não configurada no servidor."
 
     url = "https://routes.googleapis.com/directions/v2:computeRoutes"
 
@@ -92,6 +92,7 @@ def index():
                 erro = "Erro ao calcular distância."
             else:
                 taxa = calcular_taxa(km)
+
                 resultado = {
                     "endereco": destino,
                     "km": round(km, 2),
@@ -101,11 +102,13 @@ def index():
     return render_template("index.html", resultado=resultado, erro=erro)
 
 
-# 🔥 API PRINCIPAL (YAMPI)
 @app.route("/frete", methods=["GET", "POST"])
 def frete():
     if request.method == "GET":
-        return jsonify({"status": "ok"}), 200
+        return jsonify({
+            "status": "ok",
+            "message": "API de frete online"
+        }), 200
 
     dados = request.get_json(silent=True) or {}
 
@@ -114,8 +117,8 @@ def frete():
     cep = str(dados.get("zipcode", "")).strip()
 
     if not cep:
-        print("SEM CEP", flush=True)
-        return jsonify({"data": []}), 200
+        print("YAMPI NÃO ENVIOU ZIPCODE", flush=True)
+        return jsonify({}), 200
 
     destino = f"{cep}, Brasil"
 
@@ -123,22 +126,21 @@ def frete():
 
     if km is None:
         print("ERRO DISTANCIA:", erro, flush=True)
-        return jsonify({"data": []}), 200
+        return jsonify({}), 200
 
     taxa = calcular_taxa(km)
 
     if taxa is None:
-        print("FORA DA AREA:", km, flush=True)
-        return jsonify({"data": []}), 200
+        print("ENTREGA ACIMA DE 20KM:", km, flush=True)
+        return jsonify({}), 200
 
-        resposta = {
-        "data": [
-            {
-                "description": "Entrega Cantinho do Alemão",
-                "price": round(taxa, 2),
-                "delivery_days": 1
-            }
-        ]
+    taxa_centavos = int(round(taxa * 100))
+
+    resposta = {
+        "name": "Entrega Cantinho do Alemão",
+        "price": taxa_centavos,
+        "delivery_time": 1,
+        "description": f"Entrega local por motoboy - {round(km, 2)} km"
     }
 
     print("RESPOSTA PARA YAMPI:", resposta, flush=True)
