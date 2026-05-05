@@ -198,27 +198,21 @@ def frete():
 
     taxa_valor = round(taxa, 2)
 
-    resposta = [
+   resposta = {
+    "data": [
         {
             "id": "entrega-cantinho",
             "name": "Entrega Cantinho do Alemão",
-            "service": "Entrega local",
-            "price": taxa_valor,
-            "custom_price": taxa_valor,
-            "delivery_time": 1,
-            "delivery_range": {
-                "min": 1,
-                "max": 1
-            },
-            "company": {
-                "name": "Cantinho do Alemão"
-            }
+            "price": round(taxa, 2),
+            "days": 1,
+            "delivery_time": 1
         }
     ]
+}
 
-    print("RESPOSTA PARA YAMPI:", resposta, flush=True)
+print("RESPOSTA PARA YAMPI:", resposta, flush=True)
 
-    return jsonify(resposta), 200
+return jsonify(resposta), 200
 
 
 if __name__ == "__main__":
