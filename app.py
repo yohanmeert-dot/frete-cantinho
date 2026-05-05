@@ -131,14 +131,12 @@ def frete():
         print("FORA DA AREA:", km, flush=True)
         return jsonify({"data": []}), 200
 
-    resposta = {
+        resposta = {
         "data": [
             {
-                "id": "entrega-cantinho",
-                "name": "Entrega Cantinho do Alemão",
+                "description": "Entrega Cantinho do Alemão",
                 "price": round(taxa, 2),
-                "days": 1,
-                "delivery_time": 1
+                "delivery_days": 1
             }
         ]
     }
