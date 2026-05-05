@@ -36,7 +36,7 @@ def calcular_taxa(km):
 
 def calcular_distancia(destino):
     if not API_KEY:
-        return None, "API_KEY não configurada no servidor."
+        return None, "API_KEY não configurada"
 
     url = "https://routes.googleapis.com/directions/v2:computeRoutes"
 
@@ -72,19 +72,6 @@ def calcular_distancia(destino):
         return None, str(e)
 
 
-def montar_destino_por_campos(dados):
-    rua = str(dados.get("rua", "")).strip()
-    numero = str(dados.get("numero", "")).strip()
-    bairro = str(dados.get("bairro", "")).strip()
-    cidade = str(dados.get("cidade", "Ponta Grossa")).strip()
-    estado = str(dados.get("estado", "PR")).strip()
-
-    if not rua or not numero or not bairro:
-        return None
-
-    return f"{rua}, {numero}, {bairro}, {cidade}, {estado}, Brasil"
-
-
 @app.route("/", methods=["GET", "POST"])
 def index():
     resultado = None
@@ -114,63 +101,11 @@ def index():
     return render_template("index.html", resultado=resultado, erro=erro)
 
 
-@app.route("/frete-teste", methods=["POST"])
-def frete_teste():
-    dados = request.get_json(silent=True)
-
-    if not dados:
-        return jsonify({
-            "success": False,
-            "error": "Nenhum JSON recebido."
-        }), 400
-
-    destino = montar_destino_por_campos(dados)
-
-    if not destino:
-        cep = str(dados.get("zipcode", "")).strip()
-        if cep:
-            destino = f"{cep}, Brasil"
-
-    if not destino:
-        return jsonify({
-            "success": False,
-            "error": "Informe rua, número e bairro ou zipcode."
-        }), 400
-
-    km, erro_google = calcular_distancia(destino)
-
-    if km is None:
-        return jsonify({
-            "success": False,
-            "error": "Erro ao calcular distância.",
-            "detalhe": erro_google
-        }), 400
-
-    taxa = calcular_taxa(km)
-
-    if taxa is None:
-        return jsonify({
-            "success": False,
-            "error": "Entrega acima de 20km.",
-            "km": round(km, 2)
-        }), 200
-
-    return jsonify({
-        "success": True,
-        "origem": ORIGEM,
-        "destino": destino,
-        "km": round(km, 2),
-        "taxa": round(taxa, 2)
-    })
-
-
+# 🔥 API PRINCIPAL (YAMPI)
 @app.route("/frete", methods=["GET", "POST"])
 def frete():
     if request.method == "GET":
-        return jsonify({
-            "status": "ok",
-            "message": "API de frete online"
-        }), 200
+        return jsonify({"status": "ok"}), 200
 
     dados = request.get_json(silent=True) or {}
 
@@ -179,8 +114,8 @@ def frete():
     cep = str(dados.get("zipcode", "")).strip()
 
     if not cep:
-        print("YAMPI NÃO ENVIOU ZIPCODE", flush=True)
-        return jsonify([]), 200
+        print("SEM CEP", flush=True)
+        return jsonify({"data": []}), 200
 
     destino = f"{cep}, Brasil"
 
@@ -188,29 +123,29 @@ def frete():
 
     if km is None:
         print("ERRO DISTANCIA:", erro, flush=True)
-        return jsonify([]), 200
+        return jsonify({"data": []}), 200
 
     taxa = calcular_taxa(km)
 
     if taxa is None:
-        print("ENTREGA ACIMA DE 20KM:", km, flush=True)
-        return jsonify([]), 200
+        print("FORA DA AREA:", km, flush=True)
+        return jsonify({"data": []}), 200
 
-   resposta = {
-       "data": [
-        {
-            "id": "entrega-cantinho",
-            "name": "Entrega Cantinho do Alemão",
-            "price": round(taxa, 2),
-            "days": 1,
-            "delivery_time": 1
-        }
-    ]
-}
+    resposta = {
+        "data": [
+            {
+                "id": "entrega-cantinho",
+                "name": "Entrega Cantinho do Alemão",
+                "price": round(taxa, 2),
+                "days": 1,
+                "delivery_time": 1
+            }
+        ]
+    }
 
-print("RESPOSTA PARA YAMPI:", resposta, flush=True)
+    print("RESPOSTA PARA YAMPI:", resposta, flush=True)
 
-return jsonify(resposta), 200
+    return jsonify(resposta), 200
 
 
 if __name__ == "__main__":
