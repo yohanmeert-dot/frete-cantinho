@@ -136,17 +136,22 @@ def frete():
 
     taxa_centavos = int(round(taxa * 100))
 
-    resposta = {
-        "name": "Entrega Cantinho do Alemão",
-        "price": taxa_centavos,
-        "delivery_time": 1,
-        "description": f"Entrega local por motoboy - {round(km, 2)} km"
+        resposta = {
+        "quotes": [
+            {
+                "name": "Entrega Cantinho do Alemão",
+                "service": "ENTREGA_LOCAL",
+                "price": round(taxa, 2),
+                "days": 1,
+                "quote_id": "entrega-cantinho",
+                "free_shipment": False
+            }
+        ]
     }
 
     print("RESPOSTA PARA YAMPI:", resposta, flush=True)
 
     return jsonify(resposta), 200
-
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
