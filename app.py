@@ -56,8 +56,8 @@ def calcular_distancia(destino):
         response = requests.post(url, json=body, headers=headers, timeout=15)
         data = response.json()
 
-        print("STATUS GOOGLE:", response.status_code)
-        print("RESPOSTA GOOGLE:", data)
+        print("STATUS GOOGLE:", response.status_code, flush=True)
+        print("RESPOSTA GOOGLE:", data, flush=True)
 
         if response.status_code != 200:
             return None, data
@@ -114,7 +114,6 @@ def index():
     return render_template("index.html", resultado=resultado, erro=erro)
 
 
-# API para teste manual
 @app.route("/frete-teste", methods=["POST"])
 def frete_teste():
     dados = request.get_json(silent=True)
@@ -128,9 +127,14 @@ def frete_teste():
     destino = montar_destino_por_campos(dados)
 
     if not destino:
+        cep = str(dados.get("zipcode", "")).strip()
+        if cep:
+            destino = f"{cep}, Brasil"
+
+    if not destino:
         return jsonify({
             "success": False,
-            "error": "Informe rua, número e bairro."
+            "error": "Informe rua, número e bairro ou zipcode."
         }), 400
 
     km, erro_google = calcular_distancia(destino)
@@ -160,20 +164,23 @@ def frete_teste():
     })
 
 
-# API que a Yampi vai chamar
-@app.route("/frete", methods=["POST"])
+@app.route("/frete", methods=["GET", "POST"])
 def frete():
-    dados = request.get_json(silent=True)
+    if request.method == "GET":
+        return jsonify({
+            "status": "ok",
+            "message": "API de frete online"
+        }), 200
+
+    dados = request.get_json(silent=True) or {}
 
     print("DADOS RECEBIDOS DA YAMPI:", dados, flush=True)
 
-    if not dados:
-        return jsonify({"shipping_methods": []})
-
-    cep = dados.get("zipcode")
+    cep = str(dados.get("zipcode", "")).strip()
 
     if not cep:
-        return jsonify({"shipping_methods": []})
+        print("YAMPI NÃO ENVIOU ZIPCODE", flush=True)
+        return jsonify([]), 200
 
     destino = f"{cep}, Brasil"
 
@@ -181,30 +188,37 @@ def frete():
 
     if km is None:
         print("ERRO DISTANCIA:", erro, flush=True)
-        return jsonify({"shipping_methods": []})
+        return jsonify([]), 200
 
     taxa = calcular_taxa(km)
 
     if taxa is None:
-        return jsonify({"shipping_methods": []})
+        print("ENTREGA ACIMA DE 20KM:", km, flush=True)
+        return jsonify([]), 200
 
-    return jsonify([
-    {
-        "id": "entrega-cantinho",
-        "name": "Entrega Cantinho do Alemão",
-        "service": "Entrega local",
-        "price": round(taxa, 2),
-        "custom_price": round(taxa, 2),
-        "delivery_time": 1,
-        "delivery_range": {
-            "min": 1,
-            "max": 1
-        },
-        "company": {
-            "name": "Cantinho do Alemão"
+    taxa_centavos = int(round(taxa * 100))
+
+    resposta = [
+        {
+            "id": "entrega-cantinho",
+            "name": "Entrega Cantinho do Alemão",
+            "service": "Entrega local",
+            "price": taxa_centavos,
+            "custom_price": taxa_centavos,
+            "delivery_time": 1,
+            "delivery_range": {
+                "min": 1,
+                "max": 1
+            },
+            "company": {
+                "name": "Cantinho do Alemão"
+            }
         }
-    }
-]), 200
+    ]
+
+    print("RESPOSTA PARA YAMPI:", resposta, flush=True)
+
+    return jsonify(resposta), 200
 
 
 if __name__ == "__main__":
