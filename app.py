@@ -196,8 +196,6 @@ def frete():
         print("ENTREGA ACIMA DE 20KM:", km, flush=True)
         return jsonify([]), 200
 
-    taxa_valor = round(taxa, 2)
-
    resposta = {
        "data": [
         {
