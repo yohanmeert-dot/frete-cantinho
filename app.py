@@ -188,16 +188,23 @@ def frete():
     if taxa is None:
         return jsonify({"shipping_methods": []})
 
-    return jsonify({
-        "shipping_methods": [
-            {
-                "name": "Entrega Cantinho do Alemão",
-                "description": f"{round(km, 2)} km",
-                "price": round(taxa, 2),
-                "delivery_time": 60
-            }
-        ]
-    })
+    return jsonify([
+    {
+        "id": "entrega-cantinho",
+        "name": "Entrega Cantinho do Alemão",
+        "service": "Entrega local",
+        "price": round(taxa, 2),
+        "custom_price": round(taxa, 2),
+        "delivery_time": 1,
+        "delivery_range": {
+            "min": 1,
+            "max": 1
+        },
+        "company": {
+            "name": "Cantinho do Alemão"
+        }
+    }
+]), 200
 
 
 if __name__ == "__main__":
