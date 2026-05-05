@@ -165,7 +165,7 @@ def frete_teste():
 def frete():
     dados = request.get_json(silent=True)
 
-    print("DADOS RECEBIDOS DA YAMPI:", dados)
+    print("DADOS RECEBIDOS DA YAMPI:", dados, flush=True)
 
     if not dados:
         return jsonify({
