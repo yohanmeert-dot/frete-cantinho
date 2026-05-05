@@ -196,15 +196,15 @@ def frete():
         print("ENTREGA ACIMA DE 20KM:", km, flush=True)
         return jsonify([]), 200
 
-    taxa_centavos = int(round(taxa * 100))
+    taxa_valor = round(taxa, 2)
 
     resposta = [
         {
             "id": "entrega-cantinho",
             "name": "Entrega Cantinho do Alemão",
             "service": "Entrega local",
-            "price": taxa_centavos,
-            "custom_price": taxa_centavos,
+            "price": taxa_valor,
+            "custom_price": taxa_valor,
             "delivery_time": 1,
             "delivery_range": {
                 "min": 1,
