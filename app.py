@@ -137,7 +137,7 @@ def frete():
     taxa_centavos = int(round(taxa * 100))
 
         resposta = {
-        "quotes": [
+            "quotes": [
             {
                 "name": "Entrega Cantinho do Alemão",
                 "service": "ENTREGA_LOCAL",
