@@ -168,42 +168,36 @@ def frete():
     print("DADOS RECEBIDOS DA YAMPI:", dados, flush=True)
 
     if not dados:
-        return jsonify({
-            "shipping_methods": []
-        }), 200
+        return jsonify({"shipping_methods": []})
 
-    destino = montar_destino_por_campos(dados)
+    cep = dados.get("zipcode")
 
-    if not destino:
-        return jsonify({
-            "shipping_methods": []
-        }), 200
+    if not cep:
+        return jsonify({"shipping_methods": []})
 
-    km, erro_google = calcular_distancia(destino)
+    destino = f"{cep}, Brasil"
+
+    km, erro = calcular_distancia(destino)
 
     if km is None:
-        print("ERRO GOOGLE/YAMPI:", erro_google)
-        return jsonify({
-            "shipping_methods": []
-        }), 200
+        print("ERRO DISTANCIA:", erro, flush=True)
+        return jsonify({"shipping_methods": []})
 
     taxa = calcular_taxa(km)
 
     if taxa is None:
-        return jsonify({
-            "shipping_methods": []
-        }), 200
+        return jsonify({"shipping_methods": []})
 
     return jsonify({
         "shipping_methods": [
             {
                 "name": "Entrega Cantinho do Alemão",
-                "description": f"Entrega por motoboy - {round(km, 2)} km",
+                "description": f"{round(km, 2)} km",
                 "price": round(taxa, 2),
                 "delivery_time": 60
             }
         ]
-    }), 200
+    })
 
 
 if __name__ == "__main__":
