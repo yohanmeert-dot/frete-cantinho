@@ -1,9 +1,12 @@
 from flask import Flask, render_template, request, jsonify
 import requests
+import os
 
 app = Flask(__name__)
 
-API_KEY = "AIzaSyDl7f3hRw-M1gXtdxhRhk9O3Ck05a3KSfw"
+# 🔐 API KEY segura (vem do Render)
+API_KEY = os.getenv("API_KEY")
+
 ORIGEM = "Av. Melvin Jones, 333, Ponta Grossa, PR, Brasil"
 
 
@@ -49,22 +52,27 @@ def calcular_distancia(destino):
         "travelMode": "DRIVE"
     }
 
-    response = requests.post(url, json=body, headers=headers, timeout=15)
-    data = response.json()
+    try:
+        response = requests.post(url, json=body, headers=headers, timeout=15)
+        data = response.json()
 
-    print("STATUS GOOGLE:", response.status_code)
-    print("RESPOSTA GOOGLE:", data)
+        print("STATUS GOOGLE:", response.status_code)
+        print("RESPOSTA GOOGLE:", data)
 
-    if response.status_code != 200:
-        return None, data
+        if response.status_code != 200:
+            return None, data
 
-    if "routes" not in data or len(data["routes"]) == 0:
-        return None, data
+        if "routes" not in data or len(data["routes"]) == 0:
+            return None, data
 
-    km = data["routes"][0]["distanceMeters"] / 1000
-    return km, None
+        km = data["routes"][0]["distanceMeters"] / 1000
+        return km, None
+
+    except Exception as e:
+        return None, str(e)
 
 
+# 🌐 Tela web (teste manual)
 @app.route("/", methods=["GET", "POST"])
 def index():
     resultado = None
@@ -82,7 +90,7 @@ def index():
             km, erro_google = calcular_distancia(destino)
 
             if km is None:
-                erro = "Não foi possível calcular a distância."
+                erro = "Erro ao calcular distância."
             else:
                 taxa = calcular_taxa(km)
                 resultado = {
@@ -94,6 +102,7 @@ def index():
     return render_template("index.html", resultado=resultado, erro=erro)
 
 
+# 🔥 API DE FRETE (ESSA A YAMPI VAI USAR)
 @app.route("/frete", methods=["POST"])
 def frete():
     dados = request.get_json(silent=True)
@@ -123,8 +132,8 @@ def frete():
     if km is None:
         return jsonify({
             "success": False,
-            "error": "Não foi possível calcular a distância.",
-            "google_error": erro_google
+            "error": "Erro ao calcular distância.",
+            "detalhe": erro_google
         }), 400
 
     taxa = calcular_taxa(km)
@@ -132,7 +141,7 @@ def frete():
     if taxa is None:
         return jsonify({
             "success": False,
-            "error": "Endereço acima de 20km. Entrega sob consulta.",
+            "error": "Entrega acima de 20km (consultar).",
             "km": round(km, 2)
         }), 200
 
@@ -146,4 +155,5 @@ def frete():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5001)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
