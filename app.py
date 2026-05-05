@@ -6,6 +6,7 @@ app = Flask(__name__)
 
 # 🔐 API KEY segura (vem do Render)
 API_KEY = os.getenv("API_KEY")
+print("API_KEY CARREGADA:", API_KEY)
 
 ORIGEM = "Av. Melvin Jones, 333, Ponta Grossa, PR, Brasil"
 
